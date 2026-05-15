@@ -1,0 +1,13 @@
+AI resume analyzer 
+python,flask, database, open ai 
+
+1- login/signup
+2- dashboard
+3 - upload pdf/docx
+4 - upload the role 
+5 - role for which you are applying 
+it will now match current skills with required skills
+
+new skills
+interviews 
+project

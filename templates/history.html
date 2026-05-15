@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Your History</h2>
+
+{% if reports %}
+    {% for r in reports %}
+    <div class="card">
+
+        <h3>Resume Preview</h3>
+        <p style="color: var(--text-2); font-size: 13.5px; line-height:1.6; padding: 12px 16px; background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; margin: 0 0 20px;">
+            {{ r.resume[:150] }}{% if r.resume|length > 150 %}…{% endif %}
+        </p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+            <!-- Skills -->
+            <div>
+                <h3>Skills</h3>
+                <ul>
+                    {% for s in r.result.get("skills", []) %}
+                        <li>{{ s }}</li>
+                    {% else %}
+                        <li>No skills found.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Missing Skills -->
+            <div>
+                <h3>Missing Skills</h3>
+                <ul>
+                    {% for s in r.result.get("missing_skills", []) %}
+                        <li>{{ s }}</li>
+                    {% else %}
+                        <li>No missing skills identified.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+        </div>
+
+        <hr>
+
+        <!-- Roadmap -->
+        <h3>Roadmap</h3>
+        <ul>
+            {% for s in r.result.get("roadmap", []) %}
+                <li>{{ s }}</li>
+            {% else %}
+                <li>No roadmap generated.</li>
+            {% endfor %}
+        </ul>
+
+        <hr>
+
+        <!-- Interview Questions -->
+        <h3>Interview Questions</h3>
+        <ul>
+            {% for s in r.result.get("interview_questions", []) %}
+                <li>{{ s }}</li>
+            {% else %}
+                <li>No interview questions generated.</li>
+            {% endfor %}
+        </ul>
+
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card" style="text-align:center; padding: 60px 40px;">
+        <p style="color: var(--text-3); font-size: 15px; margin: 0;">No reports found yet. <a href="/dashboard" style="color: var(--accent); text-decoration:none; font-weight:600;">Analyze your first resume →</a></p>
+    </div>
+{% endif %}
+
+{% endblock %}
