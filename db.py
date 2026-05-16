@@ -1,23 +1,14 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+import os
 
-# Replace <PASSWORD> with your actual TiDB Cloud password.
-# URL-encode special characters in the password if needed.
-DATABASE_URL = (
-    "mysql+pymysql://21jgjbhQDEXMX11.root:W4hd4yBe3qMtHOPW"
-    "@gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/test"
-)
+# Read database URL from environment variable
+DATABASE_URL = os.getenv("mysql+pymysql://21jgjbhQDEXMX11.root:W4hd4yBe3qMtHOPW@gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com:4000/test")
 
-# Create database engine
+# Create database engine (without local SSL certificate path)
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    connect_args={
-        "ssl": {
-            # On macOS this CA bundle is commonly available.
-            "ca": "/etc/ssl/cert.pem"
-        }
-    }
+    pool_pre_ping=True
 )
 
 # Create session factory
