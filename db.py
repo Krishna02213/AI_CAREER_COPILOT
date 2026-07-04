@@ -2,17 +2,27 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Read database URL from Railway environment variables
-DATABASE_URL = os.getenv("DATABASE_URL")
+# Use Railway/TiDB DATABASE_URL in production.
+# If not available, fall back to a local SQLite database.
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./resume.db")
 
-# Create engine with SSL enabled for TiDB Cloud
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    connect_args={
-        "ssl": {"ssl_mode": "VERIFY_IDENTITY"}
-    }
-)
+# Configure engine differently for local SQLite vs deployed TiDB/MySQL
+if DATABASE_URL.startswith("sqlite"):
+    # Local development (SQLite)
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True,
+    )
+else:
+    # Production deployment (Railway + TiDB Cloud)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        connect_args={
+            "ssl": {"ssl_mode": "VERIFY_IDENTITY"}
+        }
+    )
 
 # Create session factory
 SessionLocal = sessionmaker(

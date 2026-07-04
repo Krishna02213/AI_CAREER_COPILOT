@@ -6,7 +6,7 @@
 <div class="card">
     <h3>Resume Analyzer</h3>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" id="resumeForm">
         <textarea
             name="resume"
             placeholder="Paste your resume here (optional — or upload a file below)"
@@ -25,8 +25,39 @@
             required
         >
 
-        <button type="submit">Analyze Resume &rarr;</button>
+        <button type="submit" id="submitBtn">Analyze Resume &rarr;</button>
     </form>
+</div>
+
+<!-- Progress Animation Section -->
+<div id="progressContainer" style="display: none;" class="card">
+    <h3>Processing Your Resume</h3>
+    <div class="progress-steps">
+        <div class="progress-step" id="step1">
+            <div class="step-icon">📄</div>
+            <div class="step-text">Analyzing Resume</div>
+            <div class="step-status"></div>
+        </div>
+        <div class="progress-step" id="step2">
+            <div class="step-icon">🔍</div>
+            <div class="step-text">Extracting Your Data</div>
+            <div class="step-status"></div>
+        </div>
+        <div class="progress-step" id="step3">
+            <div class="step-icon">🔗</div>
+            <div class="step-text">Binding Your Data</div>
+            <div class="step-status"></div>
+        </div>
+        <div class="progress-step" id="step4">
+            <div class="step-icon">✨</div>
+            <div class="step-text">Finalizing Output</div>
+            <div class="step-status"></div>
+        </div>
+    </div>
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <p id="progressMessage" class="progress-message">Starting analysis...</p>
 </div>
 
 {% if result %}
@@ -90,5 +121,261 @@
 
 </div>
 {% endif %}
+
+<style>
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .progress-step {
+        text-align: center;
+        flex: 1;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .step-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .step-text {
+        font-size: 14px;
+        font-weight: 500;
+        color: #666;
+        transition: all 0.3s ease;
+    }
+    
+    .progress-step.active .step-icon {
+        transform: scale(1.1);
+        animation: pulse 1s infinite;
+    }
+    
+    .progress-step.active .step-text {
+        color: #4CAF50;
+        font-weight: bold;
+    }
+    
+    .progress-step.completed .step-icon {
+        filter: grayscale(0%);
+        opacity: 0.7;
+    }
+    
+    .progress-step.completed .step-text {
+        color: #4CAF50;
+    }
+    
+    .progress-step.completed .step-status::after {
+        content: "✓";
+        color: #4CAF50;
+        font-size: 20px;
+        margin-left: 5px;
+    }
+    
+    .progress-bar-container {
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 20px 0;
+    }
+    
+    .progress-bar {
+        width: 0%;
+        height: 30px;
+        background: linear-gradient(90deg, #4CAF50, #45a049);
+        transition: width 0.5s ease;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    
+    .progress-message {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        margin-top: 10px;
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+    }
+    
+    /* Connecting lines between steps */
+    .progress-steps::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #e0e0e0;
+        z-index: 0;
+    }
+    
+    /* Disabled form while processing */
+    form.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+
+<script>
+document.getElementById('resumeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Get form data
+    const formData = new FormData(this);
+    
+    // Show progress container and disable form
+    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('resumeForm').classList.add('disabled');
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+    
+    // Reset all steps
+    resetProgress();
+    
+    // Simulate or track actual progress steps
+    await simulateProgress();
+    
+    // Submit the form
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const html = await response.text();
+        document.open();
+        document.write(html);
+        document.close();
+    } catch (error) {
+        console.error('Error:', error);
+        updateStepStatus('step4', 'error');
+        document.getElementById('progressMessage').textContent = 'Error occurred! Please try again.';
+        setTimeout(() => {
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('resumeForm').classList.remove('disabled');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Analyze Resume →';
+        }, 2000);
+    }
+});
+
+function resetProgress() {
+    const steps = ['step1', 'step2', 'step3', 'step4'];
+    steps.forEach(step => {
+        const element = document.getElementById(step);
+        element.classList.remove('active', 'completed');
+    });
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressBar').textContent = '';
+}
+
+async function simulateProgress() {
+    // Step 1: Analyzing Resume
+    updateStepStatus('step1', 'active');
+    document.getElementById('progressMessage').textContent = 'Analyzing your resume structure and content...';
+    await updateProgress(25, 2000);
+    updateStepStatus('step1', 'completed');
+    
+    // Step 2: Extracting Your Data
+    updateStepStatus('step2', 'active');
+    document.getElementById('progressMessage').textContent = 'Extracting skills, experience, and education data...';
+    await updateProgress(50, 2000);
+    updateStepStatus('step2', 'completed');
+    
+    // Step 3: Binding Your Data
+    updateStepStatus('step3', 'active');
+    document.getElementById('progressMessage').textContent = 'Binding extracted data with target role requirements...';
+    await updateProgress(75, 2000);
+    updateStepStatus('step3', 'completed');
+    
+    // Step 4: Finalizing Output
+    updateStepStatus('step4', 'active');
+    document.getElementById('progressMessage').textContent = 'Generating roadmap and interview questions...';
+    await updateProgress(90, 2000);
+}
+
+function updateStepStatus(stepId, status) {
+    const step = document.getElementById(stepId);
+    step.classList.remove('active', 'completed', 'error');
+    step.classList.add(status);
+}
+
+function updateProgress(percentage, duration) {
+    return new Promise(resolve => {
+        const startTime = Date.now();
+        const startWidth = parseFloat(document.getElementById('progressBar').style.width) || 0;
+        const endWidth = percentage;
+        
+        function animate() {
+            const now = Date.now();
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / duration);
+            const currentWidth = startWidth + (endWidth - startWidth) * progress;
+            
+            document.getElementById('progressBar').style.width = currentWidth + '%';
+            document.getElementById('progressBar').textContent = Math.floor(currentWidth) + '%';
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                resolve();
+            }
+        }
+        
+        animate();
+    });
+}
+
+// Optional: Add actual progress tracking if your API supports streaming
+function trackAPIPerformance() {
+    // If your API returns progress updates, you can implement this
+    // For example, using Server-Sent Events or WebSockets
+    const eventSource = new EventSource('/api/progress');
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        switch(data.step) {
+            case 1:
+                updateStepStatus('step1', 'active');
+                break;
+            case 2:
+                updateStepStatus('step1', 'completed');
+                updateStepStatus('step2', 'active');
+                break;
+            case 3:
+                updateStepStatus('step2', 'completed');
+                updateStepStatus('step3', 'active');
+                break;
+            case 4:
+                updateStepStatus('step3', 'completed');
+                updateStepStatus('step4', 'active');
+                break;
+        }
+        updateProgress(data.percentage, 500);
+        document.getElementById('progressMessage').textContent = data.message;
+    };
+}
+</script>
 
 {% endblock %}
