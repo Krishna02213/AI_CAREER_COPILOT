@@ -1,15 +1,18 @@
 from flask import Flask, render_template, request, redirect, session
 from db import Base, engine, SessionLocal
-from ai import analyze_resume   # Make sure this function exists
+from ai import analyze_resume
 import models
 import PyPDF2
 import docx
 import json
+import os
 
 app = Flask(__name__)
-app.secret_key = "secret123"   # Fixed typo: scret_key -> secret_key
 
-# Create tables
+# Secret key from environment variable
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
+
+# Create database tables
 Base.metadata.create_all(bind=engine)
 
 
@@ -30,14 +33,17 @@ def signup():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        # Fixed: added .first()
         existing_user = db.query(models.User).filter_by(email=email).first()
 
         if existing_user:
             db.close()
             return "User already exists"
 
-        user = models.User(email=email, password=password)
+        user = models.User(
+            email=email,
+            password=password
+        )
+
         db.add(user)
         db.commit()
         db.close()
@@ -57,20 +63,18 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        # Fixed query and added .first()
         user = db.query(models.User).filter_by(
             email=email,
             password=password
         ).first()
 
         if user:
-            # Fixed session syntax
             session["user"] = user.email
             db.close()
             return redirect("/dashboard")
-        else:
-            db.close()
-            return "Invalid credentials"
+
+        db.close()
+        return "Invalid credentials"
 
     db.close()
     return render_template("login.html")
@@ -87,46 +91,48 @@ def dashboard():
     if request.method == "POST":
         user_goal = request.form.get("role")
         resume_text = request.form.get("resume")
-
         file = request.files.get("file")
 
-        # ---------- FILE HANDLING ----------
-        if file and file.filename != "":
-            # PDF
-            if file.filename.endswith(".pdf"):
+        # -------- PDF Upload --------
+        if file and file.filename:
+
+            if file.filename.lower().endswith(".pdf"):
                 try:
-                    pdf_reader = PyPDF2.PdfReader(file)
+                    reader = PyPDF2.PdfReader(file)
                     text = ""
 
-                    for page in pdf_reader.pages:
+                    for page in reader.pages:
                         text += page.extract_text() or ""
 
                     resume_text = text
 
                 except Exception as e:
-                    result = {"error": f"PDF error: {str(e)}"}
+                    result = {"error": f"PDF Error: {e}"}
 
-            # DOCX
-            elif file.filename.endswith(".docx"):
+            # -------- DOCX Upload --------
+            elif file.filename.lower().endswith(".docx"):
                 try:
-                    doc = docx.Document(file)
+                    document = docx.Document(file)
                     text = ""
 
-                    for para in doc.paragraphs:
+                    for para in document.paragraphs:
                         text += para.text + "\n"
 
                     resume_text = text
 
                 except Exception as e:
-                    result = {"error": f"DOCX error: {str(e)}"}
+                    result = {"error": f"DOCX Error: {e}"}
 
-        # ---------- ANALYZE RESUME ----------
+        # -------- AI Analysis --------
         if resume_text and user_goal and result is None:
             try:
-                result = analyze_resume(resume_text, user_goal)
+                result = analyze_resume(
+                    resume_text,
+                    user_goal
+                )
 
-                # Save to database
                 db = SessionLocal()
+
                 user = db.query(models.User).filter_by(
                     email=session["user"]
                 ).first()
@@ -142,10 +148,10 @@ def dashboard():
                 db.close()
 
             except Exception as e:
-                result = {"error": f"AI error: {str(e)}"}
+                result = {"error": f"AI Error: {e}"}
 
     return render_template(
-        "dashboard.html",   # Fixed typo
+        "dashboard.html",
         user=session["user"],
         result=result
     )
@@ -167,17 +173,16 @@ def history():
         user_id=user.id
     ).all()
 
-    # Convert JSON string to dictionary
     parsed_reports = []
 
-    for r in reports:
+    for report in reports:
         try:
-            parsed_result = json.loads(r.results)
+            parsed_result = json.loads(report.results)
         except Exception:
             parsed_result = {}
 
         parsed_reports.append({
-            "resume": r.resume_text,
+            "resume": report.resume_text,
             "result": parsed_result
         })
 
